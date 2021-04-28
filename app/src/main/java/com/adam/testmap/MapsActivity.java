@@ -5,25 +5,24 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap.OnMyLocationButtonClickListener;
 import com.google.android.gms.maps.GoogleMap.OnMyLocationClickListener;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
-import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.data.Feature;
 import com.google.maps.android.data.Point;
@@ -53,7 +52,7 @@ public class MapsActivity extends AppCompatActivity implements
     private GoogleMap mMap;
     private UiSettings uiSettings;
     private static final String[] REQUIRED_SDK_PERMISSIONS = new String[]{
-            Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_CHECKIN_PROPERTIES};
+            Manifest.permission.ACCESS_FINE_LOCATION};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,17 +65,21 @@ public class MapsActivity extends AppCompatActivity implements
         checkPermissions();
 
     }
+
     @SuppressLint("MissingPermission")
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        LatLng sydney = new LatLng(25.015088, 121.542743);
         mMap = googleMap;
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+
         mMap.setMyLocationEnabled(true);
         mMap.setOnMyLocationButtonClickListener(this);
         mMap.setOnMyLocationClickListener(this);
         uiSettings = mMap.getUiSettings();
         uiSettings.setMapToolbarEnabled(false);
         uiSettings.setZoomControlsEnabled(true);
-        startDemo();
+        start();
     }
 
 
@@ -102,13 +105,13 @@ public class MapsActivity extends AppCompatActivity implements
 
     @Override
     public boolean onMyLocationButtonClick() {
-        Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "定位中...", Toast.LENGTH_SHORT).show();
         return false;
     }
 
     @Override
     public void onMyLocationClick(@NonNull Location location) {
-        Toast.makeText(this, "Current location:\n" + location, Toast.LENGTH_LONG).show();
+
     }
 
     @Override
@@ -117,8 +120,9 @@ public class MapsActivity extends AppCompatActivity implements
             case REQUEST_CODE_ASK_PERMISSIONS:
                 for (int index = permissions.length - 1; index >= 0; --index) {
                     if (grantResults[index] != PackageManager.PERMISSION_GRANTED) {
-                        Toast.makeText(this, "Required permission '" + permissions[index]
-                                + "' not granted, exiting", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "要求權限" + permissions[index]
+                                + "未授權，離開應用程式", Toast.LENGTH_LONG).show();
+                        finish();
                         return;
                     }
                 }
@@ -130,7 +134,7 @@ public class MapsActivity extends AppCompatActivity implements
     private final static String mLogTag = "GeoJsonDemo";
 
 
-    protected void startDemo() {
+    protected void start() {
 
         retrieveFileFromUrl();
 
@@ -142,7 +146,6 @@ public class MapsActivity extends AppCompatActivity implements
         new DownloadGeoJsonFile().execute("https://raw.githubusercontent.com/kiang/pharmacies/master/json/points.json");
 
     }
-
 
 
     private class DownloadGeoJsonFile extends AsyncTask<String, Void, GeoJsonLayer> {
@@ -188,15 +191,16 @@ public class MapsActivity extends AppCompatActivity implements
             public void onFeatureClick(Feature feature) {
                 Point point = (Point) feature.getGeometry();
 
-                MarkerOptions markerOptions=new MarkerOptions();
+                MarkerOptions markerOptions = new MarkerOptions();
                 markerOptions.position(point.getGeometryObject())
-                        .title("店家名稱"+feature.getProperty("name"))
-                .snippet("成人口罩數："+feature.getProperty("mask_adult")+"\n"+"兒童口罩數："+feature.getProperty("mask_child"));
-                InfoWindowActivity adapter =new InfoWindowActivity(MapsActivity.this);
+                        .title(feature.getProperty("name"))
+                        .snippet("成人口罩數：" + feature.getProperty("mask_adult") +
+                                "\n" + "兒童口罩數：" + feature.getProperty("mask_child") +
+                                "\n" + "販賣資息：" + feature.getProperty("note") +
+                                "\n" + "聯絡電話：" + feature.getProperty("phone"));
+                InfoWindowActivity adapter = new InfoWindowActivity(MapsActivity.this);
                 mMap.setInfoWindowAdapter(adapter);
                 mMap.addMarker(markerOptions).showInfoWindow();
-
-
 
             }
         });
